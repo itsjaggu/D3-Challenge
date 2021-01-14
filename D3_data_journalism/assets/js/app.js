@@ -57,7 +57,7 @@ d3.csv("assets/data/data.csv").then(function(healthData) {
 
   // Step 5: Create Circles
   // ==============================
-  var circlesGroup = svg.selectAll('g')
+  var circlesGroup = svg.selectAll('g circle')
     .data(healthData)
     .enter()
     .append('g')
