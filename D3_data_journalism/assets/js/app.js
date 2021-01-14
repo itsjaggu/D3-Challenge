@@ -26,6 +26,7 @@ d3.csv("assets/data/data.csv").then(function(healthData) {
   // Step 1: Parse Data/Cast as numbers
   // ==============================
   healthData.forEach(function(data) {
+    data.id = +data.id;
     data.healthcare = +data.healthcare;
     data.poverty = +data.poverty;
   });
@@ -33,11 +34,11 @@ d3.csv("assets/data/data.csv").then(function(healthData) {
   // Step 2: Create scale functions
   // ==============================
   var xLinearScale = d3.scaleLinear()
-    .domain([d3.min(healthData, d => d.poverty)-1, d3.max(healthData, d => d.poverty)])
+    .domain([d3.min(healthData, d => d.poverty)*0.9, d3.max(healthData, d => d.poverty)*1.1])
     .range([0, width]);
 
   var yLinearScale = d3.scaleLinear()
-    .domain([d3.min(healthData, d => d.healthcare)-1, d3.max(healthData, d => d.healthcare)])
+    .domain([d3.min(healthData, d => d.healthcare), d3.max(healthData, d => d.healthcare)+1])
     .range([height, 0]);
 
   // Step 3: Create axis functions
@@ -56,25 +57,40 @@ d3.csv("assets/data/data.csv").then(function(healthData) {
 
   // Step 5: Create Circles
   // ==============================
-  var circlesGroup = chartGroup.selectAll("circle")
+  var circlesGroup = svg.selectAll('g')
     .data(healthData)
     .enter()
+    .append('g')
+    .attr("transform", d => `translate(${xLinearScale(d.poverty)+100}, ${yLinearScale(d.healthcare)+5})`);
+  //.classed('bubble', true)
+  //.on('mouseover', showDetail)
+  //.on('mouseout', hideDetail)
+
+  //var circles = chartGroup.selectAll("circle")
+  var circles = circlesGroup
+    //.data(healthData)
+    //.enter()
     .append("circle")
-    .attr("cx", d => xLinearScale(d.poverty))
-    .attr("cy", d => yLinearScale(d.healthcare))
+    //.attr("cx", d => xLinearScale(d.poverty))
+    //.attr("cy", d => yLinearScale(d.healthcare)-15)
     .attr("r", "15")
-    .attr("fill", "pink")
-    .attr("opacity", ".5");
+    //.attr("fill", "pink")
+    //.attr("opacity", ".5");
+    .classed("stateCircle", true);
+  
   // Adding Text to Circle
-  chartGroup.selectAll("text")
-    .data(healthData)
-    .enter()
+  //var texts = chartGroup.selectAll("text")
+  var texts = circlesGroup
+    //.data(healthData)
+    //.enter()
     .append("text")
-    .attr("dx", d => xLinearScale(d.poverty)-7)
-    .attr("dy", d => yLinearScale(d.healthcare)+4)
-    .attr("font-size", 10)
-    .text(d => d.abbr);
-    
+    //.attr("dx", d => xLinearScale(d.poverty))
+    //.attr("dx", -7)
+    //.attr("dy", d => yLinearScale(d.healthcare)-10)
+    .attr("dy", 5)
+    .text(d => d.abbr)
+    .classed("stateText", true);
+
     // Step 6: Initialize tool tip
     // ==============================
     /* var toolTip = d3.tip()
