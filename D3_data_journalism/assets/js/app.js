@@ -5,7 +5,7 @@ var svgHeight = 500;
 var margin = {
   top: 20,
   right: 40,
-  bottom: 60,
+  bottom: 80,
   left: 100
 };
 
@@ -39,26 +39,21 @@ d3.csv("assets/data/data.csv").then(function(healthData) {
     data.income = +data.income;
   });
 
-  //Creating scale functions
-  var xLinearScale = d3.scaleLinear()
-    .domain([d3.min(healthData, d => d[selectedXAxis])*0.9, d3.max(healthData, d => d[selectedXAxis])*1.1])
-    .range([0, width]);
-
-  var yLinearScale = d3.scaleLinear()
-    .domain([d3.min(healthData, d => d[selectedYAxis]), d3.max(healthData, d => d[selectedYAxis])+1])
-    .range([height, 0]);
+  //Creating X & Y Scale
+  var xLinearScale = createXScale(healthData,selectedXAxis);
+  var yLinearScale = createYScale(healthData,selectedYAxis);
 
   //Creating axis functions
   var bottomAxis = d3.axisBottom(xLinearScale);
   var leftAxis = d3.axisLeft(yLinearScale);
 
   //Appending axes to the chart
-  chartGroup.append("g")
-    .attr("transform", `translate(0, ${height})`)
-    .call(bottomAxis);
+  var xAxis = chartGroup.append("g")
+            .attr("transform", `translate(0, ${height})`)
+            .call(bottomAxis);
 
-  chartGroup.append("g")
-    .call(leftAxis);
+  var yAxis = chartGroup.append("g")
+              .call(leftAxis);
 
   //Creating Circles Group
   var circlesGroup = svg.selectAll('g circle')
@@ -79,29 +74,6 @@ d3.csv("assets/data/data.csv").then(function(healthData) {
     .attr("dy", 5)
     .text(d => d.abbr)
     .classed("stateText", true);
-
-    // Step 6: Initialize tool tip
-    // ==============================
-    /* var toolTip = d3.tip()
-      .attr("class", "tooltip")
-      .offset([80, -60])
-      .html(function(d) {
-        return (`${d.rockband}<br>Hair length: ${d.health_length}<br>Hits: ${d.num_hits}`);
-      }); */
-
-    // Step 7: Create tooltip in the chart
-    // ==============================
-    //chartGroup.call(toolTip);
-
-    // Step 8: Create event listeners to display and hide the tooltip
-    // ==============================
-    /* circlesGroup.on("click", function(data) {
-      toolTip.show(data, this);
-    })
-      // onmouseout event
-      .on("mouseout", function(data, index) {
-        toolTip.hide(data);
-      }); */
 
   // Creating X axes labels
   const xlabelsGroup = chartGroup.append("g")
@@ -135,7 +107,7 @@ d3.csv("assets/data/data.csv").then(function(healthData) {
     .attr("transform", "rotate(-90)")
     .attr("x", -(height / 2))
     .attr("y", -40)
-    .attr("value", "healthcare") // value to grab for event listener
+    .attr("value", "healthcare")
     .text("Lacks Healthcare (%)")
     .classed("active", true);
 
@@ -143,7 +115,7 @@ d3.csv("assets/data/data.csv").then(function(healthData) {
     .attr("transform", "rotate(-90)")
     .attr("x", -(height / 2))
     .attr("y", -60)
-    .attr("value", "smokes") // value to grab for event listener
+    .attr("value", "smokes")
     .text("Smokes (%)")
     .classed("inactive", true);
 
@@ -151,10 +123,145 @@ d3.csv("assets/data/data.csv").then(function(healthData) {
     .attr("transform", "rotate(-90)")
     .attr("x", -(height / 2))
     .attr("y", -80)
-    .attr("value", "obesity") // value to grab for event listener
+    .attr("value", "obesity")
     .text("Obese (%)")
     .classed("inactive", true);
-
-  }).catch(function(error) {
-    console.log(error);
+  
+  //Click event listner for X axis
+  xlabelsGroup.selectAll("text")
+    .on("click", function() {
+    //Getting the value of selection
+    const value = d3.select(this).attr("value");
+    //Checking user clicked option with our axis variable
+    if (value !== selectedXAxis) {
+      selectedXAxis = value;
+      //updating chart parameters based on user selection
+      updateChart(healthData,selectedXAxis,selectedYAxis,circlesGroup,xAxis,yAxis);
+      
+      //Changing XAxis Label class to toggle display
+      if (selectedXAxis === "age") {
+        povertyLabel
+          .classed("active", false)
+          .classed("inactive", true);
+        ageLabel
+          .classed("active", true)
+          .classed("inactive", false);
+        incomeLabel
+          .classed("active", false)
+          .classed("inactive", true);
+      }
+      else if (selectedXAxis === "income") {
+        povertyLabel
+          .classed("active", false)
+          .classed("inactive", true);
+        ageLabel
+          .classed("active", false)
+          .classed("inactive", true);
+        incomeLabel
+          .classed("active", true)
+          .classed("inactive", false);
+      }
+      else {
+        povertyLabel
+          .classed("active", true)
+          .classed("inactive", false);
+        ageLabel
+          .classed("active", false)
+          .classed("inactive", true);
+        incomeLabel
+          .classed("active", false)
+          .classed("inactive", true);
+      }
+    }
   });
+
+  //Click event listner for Y axis
+  ylabelsGroup.selectAll("text")
+    .on("click", function() {
+    //Getting the value of selection
+    const value = d3.select(this).attr("value");
+    //Checking user clicked option with our axis variable
+    if (value !== selectedYAxis) {
+      selectedYAxis = value;
+      //updating chart parameters based on user selection
+      updateChart(healthData,selectedXAxis,selectedYAxis,circlesGroup);
+      
+      //Changing XAxis Label class to toggle display
+      if (selectedYAxis === "smokes") {
+        healthcareLabel
+          .classed("active", false)
+          .classed("inactive", true);
+        smokesLabel
+          .classed("active", true)
+          .classed("inactive", false);
+        obeseLabel
+          .classed("active", false)
+          .classed("inactive", true);
+      }
+      else if (selectedYAxis === "obesity"){
+        healthcareLabel
+          .classed("active", false)
+          .classed("inactive", true);
+        smokesLabel
+          .classed("active", false)
+          .classed("inactive", true);
+        obeseLabel
+          .classed("active", true)
+          .classed("inactive", false);
+      }
+      else {
+        healthcareLabel
+          .classed("active", true)
+          .classed("inactive", false);
+        smokesLabel
+          .classed("active", false)
+          .classed("inactive", true);
+        obeseLabel
+          .classed("active", false)
+          .classed("inactive", true);
+      }
+    }
+  });
+
+}).catch(function(error) {
+  console.log(error);
+});
+
+//Function to update the Chart based on user selection
+function updateChart(csvData, selectedXAxis, selectedYAxis, circlesGroup, xAxis, yAxis) {
+  //Updateding Chart scale
+  var xLinearScale = createXScale(csvData,selectedXAxis);
+  var yLinearScale = createYScale(csvData,selectedYAxis);
+  //Setting axis
+  var bottomAxis = d3.axisBottom(xLinearScale);
+  var leftAxis = d3.axisLeft(yLinearScale);
+  //Updating Axis values
+  xAxis.transition()
+    .duration(1000)
+    .call(bottomAxis);
+  yAxis.transition()
+    .duration(1000)
+    .call(leftAxis);
+  //Updating Circle Values
+  circlesGroup.transition()
+    .duration(1000)
+    .attr("transform", d => `translate(${xLinearScale(d[selectedXAxis])+100}, ${yLinearScale(d[selectedYAxis])+5})`);
+}
+
+//Updating X axis upon click on axis label
+function createXScale(csvData, selectedXAxis) {
+  var xLinearScale = d3.scaleLinear()
+    .domain([d3.min(csvData, d => d[selectedXAxis])*0.9, d3.max(csvData, d => d[selectedXAxis])*1.1])
+    .range([0, width]);
+
+  return xLinearScale;
+}
+
+//Updating X axis upon click on axis label
+function createYScale(csvData, selectedYAxis) {
+  var yLinearScale = d3.scaleLinear()
+    .domain([d3.min(csvData, d => d[selectedYAxis]), d3.max(csvData, d => d[selectedYAxis])+1])
+    .range([height, 0]);
+
+  return yLinearScale;
+}
